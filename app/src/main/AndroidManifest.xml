@@ -3,6 +3,14 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- See the list of launchable apps so the user can pick Ayas manually. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:label="@string/app_name"
         android:supportsRtl="true"

@@ -14,6 +14,7 @@ final class Prefs {
     static final String K_OPEN_NOTIF = "open_notif";
     static final String K_SOUND = "sound";
     static final String K_REFRESH = "refresh";
+    static final String K_DIAG = "diag";
     static final String K_PKG = "ayas_pkg";
     static final String K_LOG = "log";
     private static final int MAX_LINES = 300;
@@ -28,6 +29,7 @@ final class Prefs {
     static boolean openNotif(Context c) { return get(c).getBoolean(K_OPEN_NOTIF, true); }
     static boolean sound(Context c) { return get(c).getBoolean(K_SOUND, true); }
     static boolean refresh(Context c) { return get(c).getBoolean(K_REFRESH, true); }
+    static boolean diag(Context c) { return get(c).getBoolean(K_DIAG, true); }
     static String pkg(Context c) { return get(c).getString(K_PKG, null); }
 
     static synchronized void log(Context c, String msg) {

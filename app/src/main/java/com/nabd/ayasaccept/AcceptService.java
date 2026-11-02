@@ -61,7 +61,7 @@ public class AcceptService extends AccessibilityService {
     private final Handler h = new Handler(Looper.getMainLooper());
     private String ayasPkg;
     private boolean polling;
-    private long lastScan, lastClick, lastLearnTry, lastDrill;
+    private long lastScan, lastClick, lastLearnTry, lastDrill, lastDiag;
     private String pendingId, lastAcceptedId, lastDrilledId;
     private int verifyTries;
 
@@ -122,6 +122,7 @@ public class AcceptService extends AccessibilityService {
         if (ayasPkg == null) { tryLearn(pkg); return; }
         if (!ayasPkg.contentEquals(pkg)) return;
 
+        if (e.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) diag();
         scan(false);
         if (!polling) { polling = true; h.postDelayed(poll, POLL_MS); }
     }
@@ -140,6 +141,29 @@ public class AcceptService extends AccessibilityService {
             Prefs.get(this).edit().putString(Prefs.K_PKG, ayasPkg).apply();
             Prefs.log(this, "✅ اتعرفت على تطبيق إياس: " + ayasPkg);
         }
+    }
+
+    /** Temporary diagnostic: can we actually read the Ayas screen? Logs once per screen change. */
+    private void diag() {
+        if (!Prefs.diag(this)) return;
+        long now = SystemClock.uptimeMillis();
+        if (now - lastDiag < 1500) return;
+        lastDiag = now;
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) { Prefs.log(this, "👁️ شاشة إياس: مش قادر أقرا المحتوى (فاضي)"); return; }
+        int n = countText(root);
+        boolean acc = hasExact(root, ACCEPT);
+        boolean eys = !isEmpty(root.findAccessibilityNodeInfosByText("EYS-"));
+        Prefs.log(this, "👁️ إياس: نصوص=" + n + " · قبول=" + (acc ? "✔" : "✘") + " · EYS=" + (eys ? "✔" : "✘"));
+    }
+
+    private static boolean isEmpty(List<AccessibilityNodeInfo> l) { return l == null || l.isEmpty(); }
+
+    private int countText(AccessibilityNodeInfo node) {
+        if (node == null) return 0;
+        int c = label(node).isEmpty() ? 0 : 1;
+        for (int i = 0; i < node.getChildCount(); i++) c += countText(node.getChild(i));
+        return c;
     }
 
     private void onAyasNotification(AccessibilityEvent e) {

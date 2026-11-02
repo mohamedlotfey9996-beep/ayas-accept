@@ -50,7 +50,9 @@ public class MainActivity extends Activity {
         col.addView(toggle("فتح إشعارات إياس فوراً", Prefs.K_OPEN_NOTIF, true));
         col.addView(toggle("صوت عالي بعد القبول", Prefs.K_SOUND, true));
         col.addView(toggle("تحديث الشاشة الرئيسية كل 4 ثواني", Prefs.K_REFRESH, true));
+        col.addView(toggle("تشخيص (سجل تفصيلي لقراءة الشاشة)", Prefs.K_DIAG, true));
 
+        col.addView(button("📱 اختر تطبيق إياس يدوياً (مضمون)", v -> pickApp()));
         col.addView(button("🔊 جرّب الصوت", v -> AcceptService.alert(this)));
         col.addView(button("إعادة التعرّف على تطبيق إياس", v -> {
             Prefs.get(this).edit().remove(Prefs.K_PKG).apply();
@@ -96,6 +98,37 @@ public class MainActivity extends Activity {
                 : "⏳ افتح أي طلب في تطبيق إياس مرة واحدة عشان أتعرّف عليه"));
         String l = Prefs.get(this).getString(Prefs.K_LOG, "");
         log.setText(l.isEmpty() ? "لسه مفيش حاجة" : l);
+    }
+
+    /** Lets the user pick Ayas straight from the installed-apps list — no text detection needed. */
+    private void pickApp() {
+        android.content.pm.PackageManager pm = getPackageManager();
+        Intent main = new Intent(Intent.ACTION_MAIN);
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+        java.util.List<android.content.pm.ResolveInfo> apps = pm.queryIntentActivities(main, 0);
+
+        java.util.LinkedHashMap<String, String> map = new java.util.LinkedHashMap<>(); // label -> pkg
+        for (android.content.pm.ResolveInfo ri : apps) {
+            String pkg = ri.activityInfo.packageName;
+            if (pkg.equals(getPackageName()) || map.containsValue(pkg)) continue;
+            String label = String.valueOf(ri.loadLabel(pm));
+            map.put(label + "  (" + pkg + ")", pkg);
+        }
+        final String[] labels = map.keySet().toArray(new String[0]);
+        final String[] pkgs = map.values().toArray(new String[0]);
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("اختر تطبيق إياس")
+                .setItems(labels, (d, which) -> {
+                    String pkg = pkgs[which];
+                    Prefs.get(this).edit().putString(Prefs.K_PKG, pkg).apply();
+                    AcceptService s = AcceptService.instance;
+                    if (s != null) s.reloadPkg();
+                    Prefs.log(this, "📱 تم اختيار إياس يدوياً: " + pkg);
+                    refresh();
+                })
+                .setNegativeButton("إلغاء", null)
+                .show();
     }
 
     private Button button(String text, View.OnClickListener l) {
